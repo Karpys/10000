@@ -1,3 +1,3 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using _10000.Utils;
 
-Console.WriteLine("Hello, World!");
+DicePrinter.PrintDice();
