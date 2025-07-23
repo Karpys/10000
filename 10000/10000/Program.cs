@@ -1,8 +1,4 @@
-﻿using _10000.Utils;
+﻿using _10000;
 
-DicePrinter.PrintDice(1);
-DicePrinter.PrintDice(2);
-DicePrinter.PrintDice(3);
-DicePrinter.PrintDice(4);
-DicePrinter.PrintDice(5);
-DicePrinter.PrintDice(6);
+DiceGame game = new DiceGame();
+game.Roll();
