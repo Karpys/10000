@@ -2,8 +2,16 @@ namespace _10000;
 
 using Utils;
 
+public enum DiceGameAction
+{
+    Save = 0,
+    PickDice = 1,
+    Roll = 2
+}
+
 public class DiceGame
 {
+    private IPlayerProfile m_Player = null;
     private Random m_Random = new Random();
     private int m_Point;
     private int m_CurrentPoint;
@@ -14,8 +22,10 @@ public class DiceGame
 
     public List<int> Dices => m_Dices;
 
-    public DiceGame()
+    public DiceGame(IPlayerProfile player)
     {
+        player.Game = this;
+        m_Player = player;
         m_Dices = Enumerable.Repeat(0, 6).ToList();
     }
 
@@ -51,7 +61,7 @@ public class DiceGame
     {
         Console.WriteLine("Fail round");
         m_CurrentPoint = 0;
-        NextRound();
+        NextGame();
     }
     
     private void NextRound()
@@ -61,8 +71,8 @@ public class DiceGame
         Console.WriteLine("Next Round");
         Reroll();    
     }
-    
-    private void Roll()
+
+    public void Roll()
     {
         if (!m_CanRoll)
         {
@@ -80,6 +90,9 @@ public class DiceGame
         }
 
         PrintDices();
+        
+        if(ApplySpecialRule())
+            NextRound();
         
         bool hasThree = ApplyRuleOfThree();
 
@@ -105,6 +118,28 @@ public class DiceGame
         AskForAction();
     }
 
+    private bool ApplySpecialRule()
+    {
+        if (m_Dices.Count < 6)
+            return false;
+
+        //Triple double
+        if (m_Dices.GroupBy(i => i).Where(g => g.Count() >= 2).ToList().Count == 3)
+        {
+            UpdateScore(1000);
+            return true;
+        }
+
+        //Suite
+        if (m_Dices.GroupBy(i => i).ToList().Count == 6)
+        {
+            UpdateScore(1000);
+            return true;
+        }
+
+        return false;
+    }
+
     private bool CheckForCantPlay()
     {
         if (m_Dices.Contains(1) || m_Dices.Contains(5))
@@ -114,7 +149,7 @@ public class DiceGame
         return true;
     }
 
-    private void PrintDices()
+    public void PrintDices()
     {
         DicePrinter.InlinePrintDices(m_Dices);
     }
@@ -150,100 +185,58 @@ public class DiceGame
         {
             m_Dices.Remove(i);
         }
-        
-        if(m_Dices.Count == 0)
-            NextRound();
     }
     
     private void RemoveDice(int diceToRemove)
     {
         m_Dices.Remove(diceToRemove);
+    }
+
+    public void AskForAction()
+    {
+        List<DiceGameAction> actions = FetchPossibleActions();
+        m_Player.AskForAction(actions);
+    }
+
+    private List<DiceGameAction> FetchPossibleActions()
+    {
+        List<DiceGameAction> gameActions = new List<DiceGameAction>();
+
+        if (!m_HasToForceRoll)
+            gameActions.Add(DiceGameAction.Save);
         
-        if(m_Dices.Count == 0)
-            NextRound();
+        if(HasPickableDices())
+            gameActions.Add(DiceGameAction.PickDice);
+        
+        if(m_CanRoll)
+            gameActions.Add(DiceGameAction.Roll);
+        
+        return gameActions;
     }
 
-    private void AskForAction()
+    private bool HasPickableDices()
     {
-        //IProfile : AskForAction
-        //ManualPlayer
-        Console.WriteLine("0 : Leave with Current Score | 1 : Pick Dice | 2 : Roll");
-        int action = -1;
-        int.TryParse(Console.ReadLine(),out action);
-
-        switch (action)
-        {
-            case 0:
-                SavePointAndNextGame();
-                break;
-            case 1:
-                PickDicesAction();
-                break;
-            case 2:
-                TryRollCurrent();
-                break;
-            case -1:
-                Console.WriteLine("Fail parse");
-                AskForAction();
-                break;
-        }
+        return m_Dices.Contains(1) || m_Dices.Contains(5);
     }
 
-    private void SavePointAndNextGame()
+    public void SavePointAndNextGame()
     {
-        m_Point = m_CurrentPoint;
+        m_Point += m_CurrentPoint;
         Console.WriteLine("Point this round : "  + m_Point);
         NextGame();
     }
 
-    private void TryRollCurrent()
+    public void PickDice1()
     {
-        Roll();
+        UpdateScore(100);
+        m_CanRoll = true;
+        RemoveDice(1);
     }
-
-    private void PickDicesAction()
+    
+    public void PickDice5()
     {
-        if (!m_Dices.Contains(1) && !m_Dices.Contains(5))
-        {
-            Console.WriteLine("No pickable Dice, continue");
-            AskForAction();
-            return;
-        }
-        
-        Console.WriteLine("Pick Dice");
-        string action = Console.ReadLine();
-        List<int> diceToPick = action.Split()
-            .Select(s => int.TryParse(s, out int value) ? (int?)value : null)
-            .Where(v => v.HasValue)
-            .Select(v => v.Value)
-            .ToList();
-
-
-        foreach (int dice in diceToPick)
-        {
-            if (dice != 1 && dice != 5)
-            {
-                Console.WriteLine("Dice cannot be removed");
-                continue;
-            }
-            
-            if (m_Dices.Contains(dice))
-            {
-                if (dice == 1)
-                {
-                    UpdateScore(100);
-                }
-                else
-                {
-                    UpdateScore(50);
-                }
-                
-                m_CanRoll = true;
-                RemoveDice(dice);
-            }
-        }
-        
-        PrintDices();
-        AskForAction();
+        UpdateScore(50);
+        m_CanRoll = true;
+        RemoveDice(5);
     }
 }
