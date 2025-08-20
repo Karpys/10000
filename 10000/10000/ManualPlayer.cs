@@ -108,6 +108,5 @@ public class ManualPlayer : IPlayerProfile
         }
         
         m_DiceGame.PrintDices();
-        m_DiceGame.AskForAction();
     }
 }

@@ -12,6 +12,7 @@ public enum DiceGameAction
 public class DiceGame
 {
     private IPlayerProfile m_Player = null;
+    private int m_GameToPlay = 0;
     private Random m_Random = new Random();
     private int m_Point;
     private int m_CurrentPoint;
@@ -19,12 +20,24 @@ public class DiceGame
     private List<int> m_Dices;
     private bool m_CanRoll = true;
     private int m_GameCount = 0;
+    private bool m_InGame = true;
 
     public List<int> Dices => m_Dices;
 
-    public DiceGame(IPlayerProfile player)
+    public int CurrentScore
+    {
+        get => m_CurrentPoint;
+    }
+
+    public bool InGame
+    {
+        get => m_InGame;
+    }
+
+    public DiceGame(IPlayerProfile player,int gameToPlay)
     {
         player.Game = this;
+        m_GameToPlay = gameToPlay;
         m_Player = player;
         m_Dices = Enumerable.Repeat(0, 6).ToList();
     }
@@ -44,8 +57,16 @@ public class DiceGame
     private void NextGame()
     {
         m_GameCount++;
+        
         Console.WriteLine("Game : " + m_GameCount);
         Console.WriteLine("Point : " + m_Point);
+
+        if (m_GameCount >= m_GameToPlay)
+        {
+            m_InGame = false;   
+            return;
+        }
+        
         Reset();
     }
 
@@ -82,6 +103,7 @@ public class DiceGame
         }
 
         m_CanRoll = false;
+        m_HasToForceRoll = false;
 
         for (int i = 0; i < m_Dices.Count; i++)
         {
@@ -231,6 +253,9 @@ public class DiceGame
         UpdateScore(100);
         m_CanRoll = true;
         RemoveDice(1);
+        
+        if(m_Dices.Count == 0)
+            NextRound();
     }
     
     public void PickDice5()
@@ -238,5 +263,8 @@ public class DiceGame
         UpdateScore(50);
         m_CanRoll = true;
         RemoveDice(5);
+        
+        if(m_Dices.Count == 0)
+            NextRound();
     }
 }
